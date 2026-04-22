@@ -46,10 +46,10 @@ Implementing the registry and the specific sender logic.
 ### Phase 4: API & Presentation Layer
 Exposing the backend to the frontend.
 
-- [ ] **HTTP Handler**: Implement `http_handler.go` to handle REST routes matching the React application's needs.
-- [ ] **POST /api/notifications**: Endpoint to receive the category and message payload (includes empty payload validation).
-- [ ] **GET /api/notifications/log**: Endpoint to fetch logs sorted newest to oldest.
-- [ ] **Server Setup**: Hook up the router, inject dependencies, and run server in `main.go`.
+- [x] **HTTP Handler**: Implement `http_handler.go` to handle REST routes matching the React application's needs.
+- [x] **POST /api/notifications**: Endpoint to receive the category and message payload (includes empty payload validation).
+- [x] **GET /api/notifications/log**: Endpoint to fetch logs sorted newest to oldest.
+- [x] **Server Setup**: Hook up the router, inject dependencies, and run server in `main.go`.
 
 ### Phase 5: Frontend Layout & Formulation
 Building the React views.
