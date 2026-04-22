@@ -1,18 +1,20 @@
 # Build stage
-FROM golang:1.22-alpine AS builder
+FROM golang:1.23-alpine AS builder
+
+# Required for SQLite CGO bindings
+RUN apk add --no-cache build-base
 
 WORKDIR /app
 
 # Copy go.mod and go.sum (if exists) and download dependencies
-COPY go.mod ./
-# COPY go.sum ./
+COPY go.mod go.sum* ./
 RUN go mod download
 
 # Copy source code
 COPY . .
 
-# Build the Go application
-RUN CGO_ENABLED=0 GOOS=linux go build -o notification-server ./cmd/server
+# Build the Go application with CGO enabled (Required for sqlite3)
+RUN CGO_ENABLED=1 GOOS=linux go build -o notification-server ./cmd/server
 
 # Final stage
 FROM alpine:latest
