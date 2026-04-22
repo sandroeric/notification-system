@@ -36,12 +36,12 @@ Setting up the pure domain models, the mock users, and the SQLite repository.
 ### Phase 3: Core Logic & Channels (Strategy Pattern)
 Implementing the registry and the specific sender logic.
 
-- [ ] **Registry**: Implement `registry.go` (Factory pattern) to register and resolve notification strategies.
-- [ ] **SMS Notifier**: Implement `sms_notifier.go` with simulated logic and fault tolerance (retries).
-- [ ] **Email Notifier**: Implement `email_notifier.go` with fault tolerance.
-- [ ] **Push Notifier**: Implement `push_notifier.go` with fault tolerance.
-- [ ] **Notification Service**: Implement `notification_service.go`. Logic: Resolve subscribed users, get needed channels, execute sending with retries, and save result logs to SQLite.
-- [ ] **Service Unit Tests**: Write table-driven tests for the service layer.
+- [x] **Registry**: Implement `registry.go` (Factory pattern) to register and resolve notification strategies.
+- [x] **SMS Notifier**: Implement `sms_notifier.go` with simulated logic and fault tolerance (retries).
+- [x] **Email Notifier**: Implement `email_notifier.go` with fault tolerance.
+- [x] **Push Notifier**: Implement `push_notifier.go` with fault tolerance.
+- [x] **Notification Service**: Implement `notification_service.go`. Logic: Resolve subscribed users, get needed channels, execute sending with retries, and save result logs to SQLite.
+- [x] **Service Unit Tests**: Write table-driven tests for the service layer.
 
 ### Phase 4: API & Presentation Layer
 Exposing the backend to the frontend.
