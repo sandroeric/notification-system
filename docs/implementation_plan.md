@@ -63,10 +63,10 @@ Building the React views.
 ### Phase 6: Frontend Log History
 Validating the delivery and showing records.
 
-- [ ] **Log History Component**: Implement `LogHistory.jsx`.
-- [ ] **Log Fetching**: Fetch data from `GET /api/notifications/log` on mount and after successful form submissions.
-- [ ] **Sorting Requirements**: Ensure logs display properly ordered from newest to oldest.
-- [ ] **Review**: End-to-end manual test confirming that mock users receive appropriate messages.
+- [x] **Log History Component**: Implement `LogHistory.jsx`.
+- [x] **Log Fetching**: Fetch data from `GET /api/notifications/log` on mount and after successful form submissions.
+- [x] **Sorting Requirements**: Ensure logs display properly ordered from newest to oldest.
+- [x] **Review**: End-to-end manual test confirming that mock users receive appropriate messages.
 
 ---
 
