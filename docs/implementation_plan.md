@@ -54,11 +54,11 @@ Exposing the backend to the frontend.
 ### Phase 5: Frontend Layout & Formulation
 Building the React views.
 
-- [ ] **Styling Foundation**: Setup base `index.css` for a clean, modern aesthetic.
-- [ ] **Main Layout**: Set up `App.jsx` structure.
-- [ ] **Submission Form**: Implement `SubmissionForm.jsx` (Dropdown for Movies/Finance/Sports, Textarea for message).
-- [ ] **Form Validation**: Client-side rejection of empty messages.
-- [ ] **API Tie-in**: Wire the form to accurately trigger the backend POST endpoint.
+- [x] **Styling Foundation**: Setup base `index.css` for a clean, modern aesthetic.
+- [x] **Main Layout**: Set up `App.jsx` structure.
+- [x] **Submission Form**: Implement `SubmissionForm.jsx` (Dropdown for Movies/Finance/Sports, Textarea for message).
+- [x] **Form Validation**: Client-side rejection of empty messages.
+- [x] **API Tie-in**: Wire the form to accurately trigger the backend POST endpoint.
 
 ### Phase 6: Frontend Log History
 Validating the delivery and showing records.
