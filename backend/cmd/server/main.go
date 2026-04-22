@@ -1,6 +1,7 @@
 package main
 
 import (
+	"database/sql"
 	"log"
 	"net/http"
 	"os"
@@ -22,23 +23,34 @@ func main() {
 		port = "8080"
 	}
 
-	// 1. Init Database Repo (executes migrations)
-	repo, err := infrastructure.NewSQLiteNotificationRepository(dbPath)
+	// 1. Init Database Connection
+	db, err := sql.Open("sqlite3", dbPath)
+	if err != nil {
+		log.Fatalf("Failed to open database: %v", err)
+	}
+	defer db.Close()
+
+	// 2. Init Repositories (executes migrations)
+	repo, err := infrastructure.NewSQLiteNotificationRepository(db)
 	if err != nil {
 		log.Fatalf("Failed to initialize database: %v", err)
 	}
+	
+	userRepo := infrastructure.NewSQLiteUserRepository(db)
 
-	// 2. Setup Notification Registry & Strategies
+	// 3. Seed Mock Users into SQL
+	if err := infrastructure.SeedDatabase(db); err != nil {
+		log.Fatalf("Failed to run seeders: %v", err)
+	}
+
+	// 4. Setup Notification Registry & Strategies
 	registry := notification.NewRegistry()
 	registry.Register(notification.NewSMSStrategy())
 	registry.Register(notification.NewEmailStrategy())
 	registry.Register(notification.NewPushStrategy())
 
-	// 3. Load Mock Users
-	users := infrastructure.GetMockUsers()
-
-	// 4. Init Central Service
-	svc := application.NewNotificationService(registry, repo, users)
+	// 5. Init Central Service
+	svc := application.NewNotificationService(registry, repo, userRepo)
 
 	// 5. Init REST Controllers
 	handler := presentation.NewHTTPHandler(svc)

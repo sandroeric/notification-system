@@ -2,6 +2,7 @@ package infrastructure
 
 import (
 	"context"
+	"database/sql"
 	"testing"
 	"time"
 
@@ -9,9 +10,25 @@ import (
 )
 
 func TestSQLiteNotificationRepository(t *testing.T) {
-	repo, err := NewSQLiteNotificationRepository(":memory:")
+	db, err := sql.Open("sqlite3", ":memory:")
 	if err != nil {
-		t.Fatalf("failed to init in-memory db: %v", err)
+		t.Fatalf("failed to open mem db: %v", err)
+	}
+	defer db.Close()
+
+	if _, err := db.Exec("PRAGMA foreign_keys = ON;"); err != nil {
+		t.Fatalf("failed to enable fks: %v", err)
+	}
+
+	repo, err := NewSQLiteNotificationRepository(db)
+	if err != nil {
+		t.Fatalf("failed to init db migrations: %v", err)
+	}
+
+	// We must also create users since the notification_logs table expects a user_id foreign key constraint.
+	_, err = db.Exec("INSERT INTO users (id, name, email, phone_number) VALUES (1, 'Test', 'test@example.com', '123')")
+	if err != nil {
+		t.Fatalf("failed to insert test user: %v", err)
 	}
 
 	ctx := context.Background()

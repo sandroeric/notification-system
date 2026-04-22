@@ -25,6 +25,15 @@ func (m *MockRegistry) Get(channel domain.Channel) (domain.NotifierStrategy, boo
 	return s, ok
 }
 
+// MockUserRepo
+type MockUserRepo struct {
+	users []domain.User
+}
+
+func (m *MockUserRepo) FindAll(ctx context.Context) ([]domain.User, error) {
+	return m.users, nil
+}
+
 // MockStrategy
 type MockStrategy struct {
 	Channel   domain.Channel
@@ -77,7 +86,8 @@ func TestNotificationService_Send(t *testing.T) {
 	emailStrat := &MockStrategy{Channel: domain.ChannelEmail, FailCount: 0}
 	reg.Register(emailStrat)
 
-	svc := NewNotificationService(reg, repo, users)
+	userRepo := &MockUserRepo{users: users}
+	svc := NewNotificationService(reg, repo, userRepo)
 
 	err := svc.Send(ctx, domain.CategorySports, "Test message!")
 	if err != nil {
@@ -110,7 +120,8 @@ func TestNotificationService_Send_WithRetries(t *testing.T) {
 	smsStrat := &MockStrategy{Channel: domain.ChannelSMS, FailCount: 2} // Fails twice, succeeds 3rd
 	reg.Register(smsStrat)
 
-	svc := NewNotificationService(reg, repo, users)
+	userRepo := &MockUserRepo{users: users}
+	svc := NewNotificationService(reg, repo, userRepo)
 
 	svc.Send(ctx, domain.CategoryMovies, "Movie Time")
 
@@ -139,7 +150,8 @@ func TestNotificationService_Send_Failed(t *testing.T) {
 	pushStrat := &MockStrategy{Channel: domain.ChannelPush, FailCount: 5} // Will exhaust 3 retries
 	reg.Register(pushStrat)
 
-	svc := NewNotificationService(reg, repo, users)
+	userRepo := &MockUserRepo{users: users}
+	svc := NewNotificationService(reg, repo, userRepo)
 	svc.Send(ctx, domain.CategoryFinance, "Market Crash")
 
 	if pushStrat.calls != 3 {

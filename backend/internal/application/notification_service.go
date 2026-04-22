@@ -13,21 +13,27 @@ import (
 type NotificationService struct {
 	Registry   domain.NotificationRegistry
 	Repository domain.NotificationRepository
-	Users      []domain.User
+	UserRepo   domain.UserRepository
 }
 
-func NewNotificationService(reg domain.NotificationRegistry, repo domain.NotificationRepository, users []domain.User) *NotificationService {
+func NewNotificationService(reg domain.NotificationRegistry, repo domain.NotificationRepository, userRepo domain.UserRepository) *NotificationService {
 	return &NotificationService{
 		Registry:   reg,
 		Repository: repo,
-		Users:      users,
+		UserRepo:   userRepo,
 	}
 }
 
 // Send processes a message dispatch to all users subscribed to the given category.
 func (s *NotificationService) Send(ctx context.Context, category domain.Category, message string) error {
 	var errs []error
-	for _, user := range s.Users {
+	
+	users, err := s.UserRepo.FindAll(ctx)
+	if err != nil {
+		return fmt.Errorf("failed to fetch users from database: %w", err)
+	}
+
+	for _, user := range users {
 		// Filter users by subscription
 		if !s.isSubscribed(user, category) {
 			continue

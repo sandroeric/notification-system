@@ -1,5 +1,7 @@
 package domain
 
+import "context"
+
 // Category definitions
 type Category string
 
@@ -34,4 +36,9 @@ type User struct {
 	PhoneNumber          string
 	SubscribedCategories []Category
 	Channels             []Channel
+}
+
+// UserRepository defines the persistence interface for Users
+type UserRepository interface {
+	FindAll(ctx context.Context) ([]User, error)
 }
