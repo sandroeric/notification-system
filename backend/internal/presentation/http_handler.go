@@ -41,7 +41,13 @@ func (h *HTTPHandler) HandlePostNotification(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
-	err := h.Service.Send(r.Context(), domain.Category(req.Category), req.Message)
+	cat := domain.Category(req.Category)
+	if !cat.IsValid() {
+		http.Error(w, "Invalid category", http.StatusBadRequest)
+		return
+	}
+
+	err := h.Service.Send(r.Context(), cat, req.Message)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return

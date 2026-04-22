@@ -9,6 +9,14 @@ const (
 	CategoryMovies  Category = "Movies"
 )
 
+func (c Category) IsValid() bool {
+	switch c {
+	case CategorySports, CategoryFinance, CategoryMovies:
+		return true
+	}
+	return false
+}
+
 // Channel definitions
 type Channel string
 

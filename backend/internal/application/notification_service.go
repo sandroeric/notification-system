@@ -40,15 +40,12 @@ func (s *NotificationService) Send(ctx context.Context, category domain.Category
 			}
 
 			// Delivery attempt with Retry mechanism
-			err := s.executeWithRetry(ctx, strategy, user, message, 3)
+			retries, err := s.executeWithRetry(ctx, strategy, user, message, 3)
 
 			// Record Log
 			status := domain.DeliveryStatusSuccess
 			errorMsg := ""
-			retryCount := 3 // Simplified for metric visibility, assumes it took up to 3 inside logic or failed. Wait, actually we can track actual tries.
 
-			// Better retry metric tracking:
-			// Let's pass retry count from executeWithRetry if needed, but for simplicity assuming 3 max.
 			if err != nil {
 				status = domain.DeliveryStatusFailed
 				errorMsg = err.Error()
@@ -63,7 +60,7 @@ func (s *NotificationService) Send(ctx context.Context, category domain.Category
 				UserPhone:      user.PhoneNumber,
 				DeliveryStatus: status,
 				ErrorMessage:   errorMsg,
-				RetryCount:     retryCount,
+				RetryCount:     retries,
 				Timestamp:      time.Now(),
 			}
 
@@ -76,17 +73,17 @@ func (s *NotificationService) Send(ctx context.Context, category domain.Category
 }
 
 // executeWithRetry wraps the dispatch process with simple fault tolerance.
-func (s *NotificationService) executeWithRetry(ctx context.Context, strategy domain.NotifierStrategy, user domain.User, message string, maxRetries int) error {
+func (s *NotificationService) executeWithRetry(ctx context.Context, strategy domain.NotifierStrategy, user domain.User, message string, maxRetries int) (int, error) {
 	var err error
 	for i := 0; i < maxRetries; i++ {
 		err = strategy.Send(ctx, user, message)
 		if err == nil {
-			return nil
+			return i, nil
 		}
 		log.Printf("Delivery failed on attempt %d for %s. Retrying...\n", i+1, strategy.GetChannelType())
 		time.Sleep(50 * time.Millisecond) // Arbitrary wait
 	}
-	return fmt.Errorf("exhausted %d retries. last error: %w", maxRetries, err)
+	return maxRetries, fmt.Errorf("exhausted %d retries. last error: %w", maxRetries, err)
 }
 
 func (s *NotificationService) isSubscribed(user domain.User, target domain.Category) bool {
