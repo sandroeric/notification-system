@@ -1,27 +1,28 @@
 # Notification System Command Center
 
-A full-stack, containerized Notification Dispatching System built to elegantly scale across multiple delivery channels (SMS, Email, Push). Designed with Domain-Driven/Clean Architecture principles, the platform dynamically resolves the delivery preferences of statically mocked users and tracks its fault-tolerant execution natively within SQLite.
+A full-stack, containerized Notification Dispatching System built to elegantly scale across multiple delivery channels (SMS, Email, Push). Designed with Clean Architecture principles, the platform utilizes a robust relational database to manage users, categories, and subscription preferences with localized fault-tolerant execution natively within SQLite.
 
 ---
 
 ## 🏗 Architecture & Tech Stack
 
 This project was built focusing deeply on separation of concerns, scalability, and robust dependency structures:
-- **Backend**: Go 1.22 (Standard `net/http` router for zero-bloat)
-- **Frontend**: React.js / Vite (Functional components + Hooks + Custom Glassmorphism UI)
-- **Database**: SQLite (Automated migrations for Delivery Logging)
+- **Backend**: Go 1.23+ (Refined Clean Architecture with strictly decoupled layers)
+- **Frontend**: React.js / Vite (Vitest + React Testing Library + Glassmorphism UI)
+- **Database**: SQLite (Relational schema with Foreign Keys, Migrations, and Automated Seeding)
 - **Orchestration**: Docker & Docker Compose (Multi-stage optimized builds)
 - **Core Patterns**: 
-  - **Strategy Pattern**: Isolates channel dispatch behaviors (SMS, Email, Push) to allow isolated scaling.
-  - **Factory / Registry Pattern**: Dynamic injection of channels preventing the Notification Service code from needing to know what channels exist.
-  - **Clean Architecture / Domain-Driven**: Hard borders between Domain Models, Infrastructure (SQLite/Mock data), and Presentation (HTTP REST).
+  - **Strategy Pattern**: Isolates channel dispatch behaviors (SMS, Email, Push).
+  - **Registry Pattern**: Dynamic discovery of delivery strategies.
+  - **Repository Pattern**: Abstracted data access for both Notification Logs and User Metadata.
+  - **Clean Architecture**: Domain-driven borders between Application logic, Infrastructure, and Presentation.
 
 ---
 
 ## 🚀 Quick Start Guide
 
 ### Prerequisites
-You only need **Docker** and **Docker Compose** installed on your system. No local Go or Node environments are required.
+You only need **Docker** and **Docker Compose** installed on your system.
 
 ### Running the Application
 
@@ -30,11 +31,12 @@ You only need **Docker** and **Docker Compose** installed on your system. No loc
    ```bash
    docker-compose up --build
    ```
-3. Wait momentarily while the Go binaries compile and the React static assets are bundled.
-4. Access the Frontend Command Center in your browser:
-   **[http://localhost:3000](http://localhost:3000)**
+3. The system will automatically:
+   - Run relational SQLite migrations ensuring Foreign Key integrity.
+   - Seed the database with initial Categories, Channels, and Users.
+   - Start the Go API on port `8080` and the React UI on port `3000`.
 
-*(Note: The Backend API boots transparently on port `8080`, managed seamlessly via CORS).*
+4. Access the Command Center: **[http://localhost:3000](http://localhost:3000)**
 
 ---
 
@@ -42,36 +44,49 @@ You only need **Docker** and **Docker Compose** installed on your system. No loc
 
 ### 1. The Dispatch Form
 On the left side of the screen, you will find the **Submission Form**:
-- **Category**: Select a topic you wish to broadcast (`Sports`, `Finance`, or `Movies`).
-- **Message**: Type your exact notification payload.
+- **Category**: Select a topic (`Sports`, `Finance`, or `Movies`).
+- **Message**: Type your notification payload.
 - Hit **Dispatch**. 
 
-*The UI prevents empty network submits. Once accepted, it fires the payload directly to the Go REST API.*
-
-### 2. The Delivery Engine (Under the Hood)
+### 2. The Delivery Engine (Fault Tolerance)
 When the backend receives the broadcast:
-1. It queries predefined **Mock Users** stored exclusively in-memory.
-2. If a user is actively subscribed to the dispatched Category, it triggers a broadcast pipeline.
-3. For every channel the user opted into (e.g. they requested both *SMS* and *Email*), it looks up the specific notifier strategy via the **Registry**.
-4. It attempts simulated delivery using an embedded **Fault-Tolerance loop** (performing standard retries upon simulated failure).
+1. It queries the **SQLite Repository** to find users matching the subscription.
+2. For every user, it identifies their preferred channels.
+3. It resolves the specific notifier strategy via the **Registry**.
+4. It performs delivery using an **execute-with-retry** logic (3 attempts) to handle transient failures.
+5. Errors are aggregated using `errors.Join`. If some notifications fail but others succeed, the API returns a **207 Multi-Status** to preserve visibility into partial successes.
+6. Every attempt and final result is persisted to the `notification_logs` table.
 
 ### 3. Log History Dashboard
-On the right side of the screen, the **Delivery History** dashboard automatically flashes to reveal your live database records:
-- View exactly which users were targeted based on the constraints.
-- The dataset is queried and delivered **Newest to Oldest**.
-- You can inspect the `Status`, tracking if a delivery executed smoothly (`Success`), or if it blew past the fault-tolerance limits returning `Failed` along with attached Error definitions and Retry loop metrics.
+On the right side, the **Delivery History** reveals live records:
+- Inspect who received what, through which channel, and when.
+- Track fine-grained metrics including `RetryCount` and raw `ErrorMessages` for failed attempts.
 
 ---
 
 ## ⚙️ Extending the System
 
-Need to add a new Notification Channel (like *Slack* or *WhatsApp*)? 
+Our architectural patterns make adding new features a simple, isolated operation:
 
-Our architectural patterns make this a 3-step, highly scalable operation:
-1. Implement the `NotifierStrategy` interface (found in `backend/internal/domain/interfaces.go`).
-2. Add your new channel simulation logic inside `backend/internal/notification/your_channel.go`.
-3. Register it dynamically inside `backend/cmd/server/main.go` on system Boot:
-   ```go
-   registry.Register(notification.NewWhatsAppStrategy())
-   ```
-Zero modifications are required to the core `notification_service.go` logic!
+### Adding a New Channel (e.g. Slack)
+1. Implement the `NotifierStrategy` interface in `internal/domain/interfaces.go`.
+2. Register the strategy in `cmd/server/main.go`.
+3. The system will automatically begin routing messages to Slack for any user configured with that channel id in the DB.
+
+## 🧪 Testing
+
+We maintain a high standard of quality with comprehensive testing across both tiers:
+
+### Backend (Go)
+```bash
+cd backend && go test ./... -v -cover
+```
+- **Internal/Notification**: 100% Coverage
+- **Application/Infrastructure**: Mock-driven isolation
+
+### Frontend (Vitest)
+```bash
+cd frontend && npm run test
+```
+- Component testing for `SubmissionForm` and `LogHistory`.
+- Mocking of API fetch responses and error boundary verification.
