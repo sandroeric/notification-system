@@ -1,0 +1,10 @@
+# Node.js
+node_modules/
+
+# IDEs
+.idea/
+.vscode/
+
+# Build artifacts
+dist/
+build/
