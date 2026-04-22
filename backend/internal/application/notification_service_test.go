@@ -6,8 +6,24 @@ import (
 	"testing"
 
 	"github.com/sandro/notification-system/internal/domain"
-	"github.com/sandro/notification-system/internal/notification"
 )
+// MockRegistry
+type MockRegistry struct {
+	strategies map[domain.Channel]domain.NotifierStrategy
+}
+
+func NewMockRegistry() *MockRegistry {
+	return &MockRegistry{strategies: make(map[domain.Channel]domain.NotifierStrategy)}
+}
+
+func (m *MockRegistry) Register(strategy domain.NotifierStrategy) {
+	m.strategies[strategy.GetChannelType()] = strategy
+}
+
+func (m *MockRegistry) Get(channel domain.Channel) (domain.NotifierStrategy, bool) {
+	s, ok := m.strategies[channel]
+	return s, ok
+}
 
 // MockStrategy
 type MockStrategy struct {
@@ -55,7 +71,7 @@ func TestNotificationService_Send(t *testing.T) {
 	}
 
 	repo := &MockRepo{}
-	reg := notification.NewRegistry()
+	reg := NewMockRegistry()
 	
 	// Perfect Strategy
 	emailStrat := &MockStrategy{Channel: domain.ChannelEmail, FailCount: 0}
@@ -89,7 +105,7 @@ func TestNotificationService_Send_WithRetries(t *testing.T) {
 	}
 
 	repo := &MockRepo{}
-	reg := notification.NewRegistry()
+	reg := NewMockRegistry()
 	
 	smsStrat := &MockStrategy{Channel: domain.ChannelSMS, FailCount: 2} // Fails twice, succeeds 3rd
 	reg.Register(smsStrat)
@@ -118,7 +134,7 @@ func TestNotificationService_Send_Failed(t *testing.T) {
 	}
 
 	repo := &MockRepo{}
-	reg := notification.NewRegistry()
+	reg := NewMockRegistry()
 	
 	pushStrat := &MockStrategy{Channel: domain.ChannelPush, FailCount: 5} // Will exhaust 3 retries
 	reg.Register(pushStrat)

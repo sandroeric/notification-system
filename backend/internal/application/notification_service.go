@@ -2,6 +2,7 @@ package application
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log"
 	"time"
@@ -25,6 +26,7 @@ func NewNotificationService(reg domain.NotificationRegistry, repo domain.Notific
 
 // Send processes a message dispatch to all users subscribed to the given category.
 func (s *NotificationService) Send(ctx context.Context, category domain.Category, message string) error {
+	var errs []error
 	for _, user := range s.Users {
 		// Filter users by subscription
 		if !s.isSubscribed(user, category) {
@@ -49,6 +51,7 @@ func (s *NotificationService) Send(ctx context.Context, category domain.Category
 			if err != nil {
 				status = domain.DeliveryStatusFailed
 				errorMsg = err.Error()
+				errs = append(errs, fmt.Errorf("user %d channel %s failed: %w", user.ID, channel, err))
 			}
 
 			nLog := &domain.NotificationLog{
@@ -69,7 +72,7 @@ func (s *NotificationService) Send(ctx context.Context, category domain.Category
 			}
 		}
 	}
-	return nil
+	return errors.Join(errs...)
 }
 
 // executeWithRetry wraps the dispatch process with simple fault tolerance.
