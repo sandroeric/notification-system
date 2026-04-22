@@ -1,19 +1,25 @@
 package presentation
 
 import (
+	"context"
 	"encoding/json"
+	"log"
 	"net/http"
 	"strings"
 
-	"github.com/sandro/notification-system/internal/application"
 	"github.com/sandro/notification-system/internal/domain"
 )
 
-type HTTPHandler struct {
-	Service *application.NotificationService
+type NotificationService interface {
+	Send(ctx context.Context, category domain.Category, message string) error
+	GetLogs(ctx context.Context) ([]domain.NotificationLog, error)
 }
 
-func NewHTTPHandler(service *application.NotificationService) *HTTPHandler {
+type HTTPHandler struct {
+	Service NotificationService
+}
+
+func NewHTTPHandler(service NotificationService) *HTTPHandler {
 	return &HTTPHandler{Service: service}
 }
 
@@ -41,9 +47,18 @@ func (h *HTTPHandler) HandlePostNotification(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
-	err := h.Service.Send(r.Context(), domain.Category(req.Category), req.Message)
+	cat := domain.Category(req.Category)
+	if !cat.IsValid() {
+		http.Error(w, "Invalid category", http.StatusBadRequest)
+		return
+	}
+
+	err := h.Service.Send(r.Context(), cat, req.Message)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		log.Printf("Partial/Full Delivery Error: %v\n", err)
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusMultiStatus) // 207 Multi-Status
+		w.Write([]byte(`{"status":"partial_success", "message":"Dispatched with some errors. See logs."}`))
 		return
 	}
 

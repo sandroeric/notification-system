@@ -13,9 +13,9 @@ type SQLiteNotificationRepository struct {
 	db *sql.DB
 }
 
-func NewSQLiteNotificationRepository(dbPath string) (*SQLiteNotificationRepository, error) {
-	db, err := sql.Open("sqlite3", dbPath)
-	if err != nil {
+func NewSQLiteNotificationRepository(db *sql.DB) (*SQLiteNotificationRepository, error) {
+	// Enable foreign keys
+	if _, err := db.Exec("PRAGMA foreign_keys = ON;"); err != nil {
 		return nil, err
 	}
 
@@ -29,7 +29,40 @@ func NewSQLiteNotificationRepository(dbPath string) (*SQLiteNotificationReposito
 
 func (r *SQLiteNotificationRepository) migrate() error {
 	query := `
-	CREATE TABLE IF NOT EXISTS notification_logs (
+	CREATE TABLE IF NOT EXISTS categories (
+		id VARCHAR(50) PRIMARY KEY
+	);
+
+	CREATE TABLE IF NOT EXISTS channels (
+		id VARCHAR(50) PRIMARY KEY
+	);
+
+	CREATE TABLE IF NOT EXISTS users (
+		id INTEGER PRIMARY KEY AUTOINCREMENT,
+		name VARCHAR(255) NOT NULL,
+		email VARCHAR(255) UNIQUE NOT NULL,
+		phone_number VARCHAR(50) UNIQUE NOT NULL
+	);
+
+	CREATE TABLE IF NOT EXISTS user_subscriptions (
+		user_id INTEGER,
+		category_id VARCHAR(50),
+		PRIMARY KEY (user_id, category_id),
+		FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+		FOREIGN KEY (category_id) REFERENCES categories(id) ON DELETE CASCADE
+	);
+
+	CREATE TABLE IF NOT EXISTS user_channels (
+		user_id INTEGER,
+		channel_id VARCHAR(50),
+		PRIMARY KEY (user_id, channel_id),
+		FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+		FOREIGN KEY (channel_id) REFERENCES channels(id) ON DELETE CASCADE
+	);
+
+	-- Recreate notification_logs for FK constraint
+	DROP TABLE IF EXISTS notification_logs;
+	CREATE TABLE notification_logs (
 		id INTEGER PRIMARY KEY AUTOINCREMENT,
 		category VARCHAR(255) NOT NULL,
 		message TEXT NOT NULL,
@@ -40,7 +73,8 @@ func (r *SQLiteNotificationRepository) migrate() error {
 		delivery_status VARCHAR(50) NOT NULL,
 		error_message TEXT,
 		retry_count INTEGER NOT NULL,
-		timestamp DATETIME NOT NULL
+		timestamp DATETIME NOT NULL,
+		FOREIGN KEY (user_id) REFERENCES users(id)
 	);
 	
 	CREATE INDEX IF NOT EXISTS idx_timestamp ON notification_logs(timestamp);

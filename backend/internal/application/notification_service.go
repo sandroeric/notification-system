@@ -2,6 +2,7 @@ package application
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log"
 	"time"
@@ -12,20 +13,27 @@ import (
 type NotificationService struct {
 	Registry   domain.NotificationRegistry
 	Repository domain.NotificationRepository
-	Users      []domain.User
+	UserRepo   domain.UserRepository
 }
 
-func NewNotificationService(reg domain.NotificationRegistry, repo domain.NotificationRepository, users []domain.User) *NotificationService {
+func NewNotificationService(reg domain.NotificationRegistry, repo domain.NotificationRepository, userRepo domain.UserRepository) *NotificationService {
 	return &NotificationService{
 		Registry:   reg,
 		Repository: repo,
-		Users:      users,
+		UserRepo:   userRepo,
 	}
 }
 
 // Send processes a message dispatch to all users subscribed to the given category.
 func (s *NotificationService) Send(ctx context.Context, category domain.Category, message string) error {
-	for _, user := range s.Users {
+	var errs []error
+	
+	users, err := s.UserRepo.FindAll(ctx)
+	if err != nil {
+		return fmt.Errorf("failed to fetch users from database: %w", err)
+	}
+
+	for _, user := range users {
 		// Filter users by subscription
 		if !s.isSubscribed(user, category) {
 			continue
@@ -40,18 +48,16 @@ func (s *NotificationService) Send(ctx context.Context, category domain.Category
 			}
 
 			// Delivery attempt with Retry mechanism
-			err := s.executeWithRetry(ctx, strategy, user, message, 3)
+			retries, err := s.executeWithRetry(ctx, strategy, user, message, 3)
 
 			// Record Log
 			status := domain.DeliveryStatusSuccess
 			errorMsg := ""
-			retryCount := 3 // Simplified for metric visibility, assumes it took up to 3 inside logic or failed. Wait, actually we can track actual tries.
 
-			// Better retry metric tracking:
-			// Let's pass retry count from executeWithRetry if needed, but for simplicity assuming 3 max.
 			if err != nil {
 				status = domain.DeliveryStatusFailed
 				errorMsg = err.Error()
+				errs = append(errs, fmt.Errorf("user %d channel %s failed: %w", user.ID, channel, err))
 			}
 
 			nLog := &domain.NotificationLog{
@@ -63,7 +69,7 @@ func (s *NotificationService) Send(ctx context.Context, category domain.Category
 				UserPhone:      user.PhoneNumber,
 				DeliveryStatus: status,
 				ErrorMessage:   errorMsg,
-				RetryCount:     retryCount,
+				RetryCount:     retries,
 				Timestamp:      time.Now(),
 			}
 
@@ -72,21 +78,21 @@ func (s *NotificationService) Send(ctx context.Context, category domain.Category
 			}
 		}
 	}
-	return nil
+	return errors.Join(errs...)
 }
 
 // executeWithRetry wraps the dispatch process with simple fault tolerance.
-func (s *NotificationService) executeWithRetry(ctx context.Context, strategy domain.NotifierStrategy, user domain.User, message string, maxRetries int) error {
+func (s *NotificationService) executeWithRetry(ctx context.Context, strategy domain.NotifierStrategy, user domain.User, message string, maxRetries int) (int, error) {
 	var err error
 	for i := 0; i < maxRetries; i++ {
 		err = strategy.Send(ctx, user, message)
 		if err == nil {
-			return nil
+			return i, nil
 		}
 		log.Printf("Delivery failed on attempt %d for %s. Retrying...\n", i+1, strategy.GetChannelType())
 		time.Sleep(50 * time.Millisecond) // Arbitrary wait
 	}
-	return fmt.Errorf("exhausted %d retries. last error: %w", maxRetries, err)
+	return maxRetries, fmt.Errorf("exhausted %d retries. last error: %w", maxRetries, err)
 }
 
 func (s *NotificationService) isSubscribed(user domain.User, target domain.Category) bool {

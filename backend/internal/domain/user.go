@@ -1,5 +1,7 @@
 package domain
 
+import "context"
+
 // Category definitions
 type Category string
 
@@ -8,6 +10,14 @@ const (
 	CategoryFinance Category = "Finance"
 	CategoryMovies  Category = "Movies"
 )
+
+func (c Category) IsValid() bool {
+	switch c {
+	case CategorySports, CategoryFinance, CategoryMovies:
+		return true
+	}
+	return false
+}
 
 // Channel definitions
 type Channel string
@@ -26,4 +36,9 @@ type User struct {
 	PhoneNumber          string
 	SubscribedCategories []Category
 	Channels             []Channel
+}
+
+// UserRepository defines the persistence interface for Users
+type UserRepository interface {
+	FindAll(ctx context.Context) ([]User, error)
 }

@@ -1,0 +1,77 @@
+package infrastructure
+
+import (
+	"context"
+	"database/sql"
+	"testing"
+	"time"
+
+	"github.com/sandro/notification-system/internal/domain"
+)
+
+func TestSQLiteNotificationRepository(t *testing.T) {
+	db, err := sql.Open("sqlite3", ":memory:")
+	if err != nil {
+		t.Fatalf("failed to open mem db: %v", err)
+	}
+	defer db.Close()
+
+	if _, err := db.Exec("PRAGMA foreign_keys = ON;"); err != nil {
+		t.Fatalf("failed to enable fks: %v", err)
+	}
+
+	repo, err := NewSQLiteNotificationRepository(db)
+	if err != nil {
+		t.Fatalf("failed to init db migrations: %v", err)
+	}
+
+	// We must also create users since the notification_logs table expects a user_id foreign key constraint.
+	_, err = db.Exec("INSERT INTO users (id, name, email, phone_number) VALUES (1, 'Test', 'test@example.com', '123')")
+	if err != nil {
+		t.Fatalf("failed to insert test user: %v", err)
+	}
+
+	ctx := context.Background()
+	timestamp := time.Now()
+
+	logEntry := &domain.NotificationLog{
+		Category:       domain.CategorySports,
+		Message:        "Test Message",
+		Channel:        domain.ChannelEmail,
+		UserID:         1,
+		UserEmail:      "test@example.com",
+		UserPhone:      "123",
+		DeliveryStatus: domain.DeliveryStatusSuccess,
+		ErrorMessage:   "",
+		RetryCount:     0,
+		Timestamp:      timestamp,
+	}
+
+	// Test Save
+	err = repo.Save(ctx, logEntry)
+	if err != nil {
+		t.Fatalf("failed to save log: %v", err)
+	}
+
+	if logEntry.ID == 0 {
+		t.Errorf("expected ID to be set after save")
+	}
+
+	// Test FindAll
+	logs, err := repo.FindAll(ctx)
+	if err != nil {
+		t.Fatalf("failed to find logs: %v", err)
+	}
+
+	if len(logs) != 1 {
+		t.Fatalf("expected 1 log, got %d", len(logs))
+	}
+
+	savedLog := logs[0]
+	if savedLog.Message != "Test Message" {
+		t.Errorf("expected msg 'Test Message', got '%s'", savedLog.Message)
+	}
+	if savedLog.Category != domain.CategorySports {
+		t.Errorf("expected category 'Sports', got '%s'", savedLog.Category)
+	}
+}
