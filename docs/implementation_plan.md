@@ -17,21 +17,21 @@ This document outlines the architecture, design patterns, and structure to fulfi
 ### Phase 1: Project Initialization & Infrastructure
 This phase sets up the main folder structure, container orchestrations, and base configs.
 
-- [ ] Initialize Go modules and basic directory structure (`cmd/`, `internal/`).
-- [ ] Initialize React frontend using Vite (React + Javascript).
-- [ ] Create `docker-compose.yml` to orchestrate backend (port 8080) and frontend (port 3000).
-- [ ] Write `Dockerfile` for the Go backend (Multi-stage build).
-- [ ] Write `Dockerfile` for the React frontend (Node build + Nginx).
+- [x] Initialize Go modules and basic directory structure (`cmd/`, `internal/`).
+- [x] Initialize React frontend using Vite (React + Javascript).
+- [x] Create `docker-compose.yml` to orchestrate backend (port 8080) and frontend (port 3000).
+- [x] Write `Dockerfile` for the Go backend (Multi-stage build).
+- [x] Write `Dockerfile` for the React frontend (Node build + Nginx).
 
 ### Phase 2: Domain & Persistence Layers
 Setting up the pure domain models, the mock users, and the SQLite repository.
 
-- [ ] **Domain Models**: Create `user.go` (mock domain entity) and `notification.go` (delivery log entity).
-- [ ] **Interfaces**: Define `NotifierStrategy`, `NotificationRegistry`, and `NotificationRepository`.
-- [ ] **Mock Users**: Implement `mock_users.go` with hardcoded users mapped to categories and channels (no DB Foreign Key constraint).
-- [ ] **SQLite Repository**: Implement `sqlite_repo.go` to interact with the database.
-- [ ] **DB Migrations**: Write schema for `notification_logs` including `delivery_status`, `error_message`, and `retry_count`.
-- [ ] **DB Indexes**: Apply an index on `timestamp` for optimal newest-to-oldest sorting.
+- [x] **Domain Models**: Create `user.go` (mock domain entity) and `notification.go` (delivery log entity).
+- [x] **Interfaces**: Define `NotifierStrategy`, `NotificationRegistry`, and `NotificationRepository`.
+- [x] **Mock Users**: Implement `mock_users.go` with hardcoded users mapped to categories and channels (no DB Foreign Key constraint).
+- [x] **SQLite Repository**: Implement `sqlite_repo.go` to interact with the database.
+- [x] **DB Migrations**: Write schema for `notification_logs` including `delivery_status`, `error_message`, and `retry_count`.
+- [x] **DB Indexes**: Apply an index on `timestamp` for optimal newest-to-oldest sorting.
 
 ### Phase 3: Core Logic & Channels (Strategy Pattern)
 Implementing the registry and the specific sender logic.
